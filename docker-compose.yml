@@ -1,0 +1,62 @@
+services:
+
+  mongo:
+    image: mongo
+    restart: always
+    env_file:
+      - ./.env
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USERNAME}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD}
+    volumes:
+      - mongo:/data/db
+
+  mongo-express:
+    image: mongo-express
+    restart: always
+    ports:
+      - 8081:8081
+    env_file:
+      - ./.env
+    environment:
+      ME_CONFIG_MONGODB_ADMINUSERNAME: ${MONGO_USERNAME}
+      ME_CONFIG_MONGODB_ADMINPASSWORD: ${MONGO_PASSWORD}
+      ME_CONFIG_MONGODB_URL: mongodb://${MONGO_USERNAME}:${MONGO_PASSWORD}@mongo:${MONGO_PORT}/
+      ME_CONFIG_BASICAUTH: false
+
+  backend:
+    container_name: backend
+    build:
+      context: ./
+      dockerfile: backend/Dockerfile
+    depends_on:
+    - mongo
+    ports:
+    - 8000:8000
+    environment:
+      PYTHONUNBUFFERED: 1
+      MONGO_DATABASE: ${MONGO_DATABASE}
+      MONGO_USERNAME: ${MONGO_USERNAME}
+      MONGO_PASSWORD: ${MONGO_PASSWORD}
+      MONGO_PORT: ${MONGO_PORT}
+      SECRET_KEY: ${SECRET_KEY}
+      LOG_LEVEL: ${LOG_LEVEL}
+    volumes:
+    - ./backend/app:/code
+
+  frontend:
+    container_name: frontend
+    build:
+      context: ./
+      dockerfile: frontend/Dockerfile
+    ports:
+    - 3000:3000
+    environment:
+      NODE_ENV: development
+    stdin_open: true
+    tty: true
+    volumes:
+    - ./frontend/app:/code
+
+volumes:
+  mongo:
